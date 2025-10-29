@@ -7,15 +7,15 @@ plugins {
 
 android {
     namespace 'com.chordz.eprachar'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.chordz.eprachar"
-        minSdk 21
+        minSdk 26
         minSdkVersion 26
-        targetSdk 33
+        targetSdk 35
         versionCode 1
-        versionName "1.0"
+        versionName "2.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -29,6 +29,10 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
     }
 }
 

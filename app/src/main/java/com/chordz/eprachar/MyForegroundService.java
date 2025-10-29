@@ -5,10 +5,12 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.ServiceCompat;
 
 public class MyForegroundService extends Service {
     @Override
@@ -42,7 +44,14 @@ public class MyForegroundService extends Service {
                 .setContentText("Service is running")
                 .setContentTitle("Service enabled")
                 .setSmallIcon(R.mipmap.ic_elauncher);
-        startForeground(1001,notification.build());
+        
+        // Use proper API for Android 15+ foreground service types
+        if (Build.VERSION.SDK_INT >= 35) {
+            startForeground(1001, notification.build(), 
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(1001, notification.build());
+        }
 
         return super.onStartCommand(intent, flags, startId);
     }

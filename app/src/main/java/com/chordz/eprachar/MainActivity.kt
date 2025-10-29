@@ -526,10 +526,8 @@ class MainActivity : AppCompatActivity() {
             myIntent.data = Uri.parse("package:$packageName")
             this.startActivity(myIntent)
         }
-        if (!isAccessibilityOn(this, WhatsappAccessibilityService::class.java)) {
-            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-            this.startActivity(intent)
-        }
+        // Removed automatic accessibility settings check to prevent popups
+        // Users can manually enable accessibility services if needed
         val serviceManager = AccessibilityServiceManager(this)
         if (!serviceManager.hasAccessibilityServicePermission(MyAccessibilityService::class.java)) {
             serviceManager.requestUserForAccessibilityService(this)
