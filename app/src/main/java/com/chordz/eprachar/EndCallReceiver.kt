@@ -19,119 +19,46 @@ import com.chordz.eprachar.data.ElectionDataHolder.msgDetails
 import com.chordz.eprachar.preferences.AppPreferences
 import com.chordz.eprachar.preferences.AppPreferences.getBooleanValueFromSharedPreferences
 import com.chordz.eprachar.preferences.AppPreferences.saveBooleanToSharedPreferences
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import org.json.JSONObject
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.*
 
 class EndCallReceiver : BroadcastReceiver() {
-    private var serviceManager: AccessibilityServiceManager? = null
-    private var wm: WindowManager? = null
-    private var params1: WindowManager.LayoutParams? = null
-    private var phoneNumber: String = ""
     override fun onReceive(context: Context, intent: Intent) {
         /*if (!validate(context)) {
             return
         }*/
         val bundle = intent.extras
-        phoneNumber = bundle!!.getString("incoming_number").toString()
+        val phoneNumber = bundle!!.getString("incoming_number").toString()
 
         val phoneStateString = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
         Log.e("TAG", "onReceive: $phoneNumber $phoneStateString")
-        if (phoneNumber != null && !phoneNumber!!.isEmpty() && (phoneStateString!!.contains("OFFHOOK"))
+        if (phoneNumber != null && !phoneNumber.isEmpty() && (phoneStateString!!.contains("OFFHOOK"))
         ) {
-//            openWhatsApp(context, phoneNumber!!)
-            showWindow(context, phoneNumber!!)
+            onCallEnded(context, phoneNumber)
         }
     }
 
-    private fun showWindow(context: Context, phoneNumber: String) {
-        wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        params1 = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSPARENT
-        )
-        params1!!.height = 75
-        params1!!.width = 512
-        params1!!.x = 265
-        params1!!.y = 400
-        params1!!.format = PixelFormat.RGB_888
-        ly1 = LinearLayout(context)
-        ly1!!.setBackgroundColor(Color.GRAY)
-        val textView = TextView(context)
-        textView.layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        textView.text = "E-Prachar"
-        textView.setTextColor(Color.BLACK)
-        ly1!!.addView(textView)
-        ly1!!.setOnClickListener { v -> //                openWhatsApp(context, phoneNumber);
-            if (getBooleanValueFromSharedPreferences(AppPreferences.WHATSAPP_ON_OFF) ||
-                getBooleanValueFromSharedPreferences(AppPreferences.SMS_ON_OFF)) {
-                saveBooleanToSharedPreferences(context, AppPreferences.isFromEpracharService, true)
-                val intent = Intent(ly1!!.context, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                intent.putExtra("PHONE_NUMBER", phoneNumber)
-                v.context.startActivity(intent)
-                Handler(Looper.myLooper()!!).postDelayed({
-                    if (AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.isFromEpracharService)) {
-                        AppPreferences.saveBooleanToSharedPreferences(
-                            context,
-                            AppPreferences.isFromEpracharService,
-                            false
-                        )
-                    }
-                }, 10000)
-            }
-            wm!!.removeView(ly1)
+    private fun onCallEnded(context: Context, phoneNumber: String) {
+        if (!AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.WHATSAPP_ON_OFF)||phoneNumber!=null) return
+        // Fetch admin code (user_id), message, media_url, timestamp
+        val userId = AppPreferences.getLongValueFromSharedPreferences(AppPreferences.ADMIN_NUMBER).toString()
+        val message: String = msgDetails?.data?.getOrNull(0)?.aMessage ?: ""
+        val mediaUrl: String = msgDetails?.data?.getOrNull(0)?.aImage ?: ""
+        val isoDate: String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
+        val json = JSONObject().apply {
+            put("user_id", userId)
+            put("caller_number", phoneNumber)
+            put("call_status", "missed") // Or update by call type
+            put("timestamp", isoDate)
+            put("message", message)
+            put("media_url", mediaUrl)
         }
-
-        ly1!!.orientation = LinearLayout.VERTICAL
-        wm!!.addView(ly1, params1)
-        ly1!!.callOnClick()
+        sendWebhook(json)
     }
-
-    private fun openWhatsApp(context: Context, phoneNumber: String) {
-        serviceManager = AccessibilityServiceManager(context)
-        if (serviceManager!!.hasAccessibilityServicePermission(MyAccessibilityService::class.java)) {
-            val response = msgDetails
-            if (response != null && response.data != null) {
-                val details = response.data
-                val defaultMessage = details[0]!!.aMessage
-                val defaultImage = details[0]!!.aImage
-                sendSMSMessage(phoneNumber, defaultMessage)
-
-                //Code For New Line
-//                String formattedMessage = defaultMessage.replace("|", "\n");
-
-
-                // Format the phone number to include the country code (e.g., +1 for the US)
-                val formattedPhoneNumber = formatPhoneNumber(phoneNumber)
-
-                // Create an Intent to open WhatsApp with the specified phone number and default message
-                val whatsappIntent = Intent(Intent.ACTION_SEND)
-                whatsappIntent.data = Uri.parse(
-                    "https://wa.me/" + formattedPhoneNumber + "?text=" + Uri.encode(defaultMessage)
-                )
-
-                // Add FLAG_ACTIVITY_NEW_TASK flag
-                whatsappIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-                // Start the activity
-                if (getBooleanValueFromSharedPreferences(AppPreferences.WHATSAPP_ON_OFF)) {
-                    context.startActivity(whatsappIntent);
-                }
-                Log.e("TAG", "onReceive: MyAccessibilityServicephoneNumber: $formattedPhoneNumber")
-            }
-        } else {
-            val intent = Intent(context, MainActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            context.startActivity(intent)
-            //            serviceManager.requestUserForAccessibilityService( context);
-        }
-    }
-
 
     private fun sendSMSMessage(phoneNumber: String, defaultMessage: String?) {
         try {
@@ -153,11 +80,25 @@ class EndCallReceiver : BroadcastReceiver() {
         return phoneNumber
     }
 
+    private fun sendWebhook(payload: JSONObject) {
+        val url = "https://distillable-omari-loathingly.ngrok-free.dev/webhook/eprachar"
+        val client = OkHttpClient()
+        val body = RequestBody.create("application/json; charset=utf-8".toMediaType(), payload.toString())
+        val req = Request.Builder().url(url).post(body).build()
+        client.newCall(req).enqueue(object: Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("EPrachar", "Webhook failed", e)
+            }
+            override fun onResponse(call: Call, response: Response) {
+                Log.i("EPrachar", "Webhook status: ${'$'}{response.code}")
+            }
+        })
+    }
+
     internal interface OnPhoneStateReceived {
         fun onPhoneStateReceived(phoneNumber: String?)
     }
 
     companion object {
-        private var ly1: LinearLayout? = null
     }
 }

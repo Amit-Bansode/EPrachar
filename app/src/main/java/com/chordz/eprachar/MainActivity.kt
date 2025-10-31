@@ -53,14 +53,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var root: ConstraintLayout
     private var imageBitmap: Bitmap? = null
     private lateinit var swSMSOnOff: SwitchCompat
-    private lateinit var swWhatsAppOnOff: SwitchCompat
-    private lateinit var serviceManager: AccessibilityServiceManager
     private lateinit var etMaxNoOfMsg: EditText
     var editText = ""
     var apiResponse = ""
     private var phoneNumberEditText: EditText? = null
     private var openWhatsAppButton: Button? = null
     private lateinit var swOnOff: SwitchCompat
+    private lateinit var swWhatsAppOnOff : SwitchCompat
     private var homeViewModel: HomeViewModel? = null
     private var detailsList: ArrayList<DataItem?>? = ArrayList()
     private val dataItem: DataItem? = null
@@ -68,11 +67,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (!foregroundServiceRunning()) {
-            val serviceIntent = Intent(this, MyForegroundService::class.java)
-
-            startForegroundService(serviceIntent)
-        }
         initView()
         updateUI()
         fetchData()
@@ -122,10 +116,6 @@ class MainActivity : AppCompatActivity() {
         if (AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.SMS_ON_OFF)) {
             swSMSOnOff.isChecked =
                 AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.SMS_ON_OFF)
-        }
-        if (AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.WHATSAPP_ON_OFF)) {
-            swWhatsAppOnOff.isChecked =
-                AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.WHATSAPP_ON_OFF)
         }
     }
 
@@ -263,61 +253,31 @@ class MainActivity : AppCompatActivity() {
         } else {
             phoneNumber = mPhoneNumber
         }
-        serviceManager = AccessibilityServiceManager(context)
-        if (serviceManager.hasAccessibilityServicePermission(MyAccessibilityService::class.java)) {
-            val response = msgDetails
-            if (response != null && response.data != null) {
-                val details = response.data
-                val defaultMessage = details[0]!!.aMessage+"\n click link for more details\n"+details[0]!!.aImage
-                if (AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.SMS_ON_OFF)) {
-                    Toast.makeText(this, "Sending SMS", Toast.LENGTH_SHORT).show()
-                    sendSMSMessage(formatPhoneNumber(phoneNumber)!!, defaultMessage!!)
-                }else{
-                    Toast.makeText(this, "Sending SMS is off", Toast.LENGTH_SHORT).show()
-                }
-                if (!AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.WHATSAPP_ON_OFF)) {
-                    Toast.makeText(this, "WhatsApp Posting is off", Toast.LENGTH_SHORT).show()
-                    return
-                }
+        if (AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.SMS_ON_OFF)) {
+            Toast.makeText(this, "Sending SMS", Toast.LENGTH_SHORT).show()
+            sendSMSMessage(formatPhoneNumber(phoneNumber)!!, "Your message")
+        }else{
+            Toast.makeText(this, "Sending SMS is off", Toast.LENGTH_SHORT).show()
+        }
 
 
-                //Code For New Line
+        //Code For New Line
 //                String formattedMessage = defaultMessage.replace("|", "\n");
 
 
-                // Format the phone number to include the country code (e.g., +1 for the US)
-                val formattedPhoneNumber: String = formatPhoneNumber(phoneNumber)!!
+        // Format the phone number to include the country code (e.g., +1 for the US)
+        val formattedPhoneNumber: String = formatPhoneNumber(phoneNumber)!!
 
-                // Create an Intent to open WhatsApp with the specified phone number and default message
-                val whatsappIntent = Intent(Intent.ACTION_VIEW)
-                whatsappIntent.data = Uri.parse(
-                    "https://wa.me/" + formattedPhoneNumber + "?text=" + Uri.encode(defaultMessage)
-                )
-                Toast.makeText(this, "Sending WhatsApp Message", Toast.LENGTH_SHORT).show()
+        // Create an Intent to open WhatsApp with the specified phone number and default message
+        val whatsappIntent = Intent(Intent.ACTION_VIEW)
+        whatsappIntent.data = Uri.parse(
+            "https://wa.me/" + formattedPhoneNumber + "?text=" + Uri.encode("Your message")
+        )
+        Toast.makeText(this, "Sending WhatsApp Message", Toast.LENGTH_SHORT).show()
 
-                // Add FLAG_ACTIVITY_NEW_TASK flag
-                whatsappIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                this.startActivity(whatsappIntent)
-                if (ElectionDataHolder.messageBitmap == null) {
-                    Snackbar.make(root, "Message not downloaded", Snackbar.LENGTH_SHORT).show()
-                } else if (AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.WHATSAPP_ON_OFF)) {
-                    Handler(Looper.myLooper()!!).postDelayed({
-                        shareViaWhatsApp(
-                            ElectionDataHolder.messageBitmap!!,
-                            defaultMessage!!,
-                            phoneNumber
-                        )
-                    }, 3000)
-                }
-            } else {
-                Toast.makeText(this, "Reset Prachar", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            val intent = Intent(context, MainActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            context.startActivity(intent)
-            //            serviceManager.requestUserForAccessibilityService( context);
-        }
+        // Add FLAG_ACTIVITY_NEW_TASK flag
+        whatsappIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        this.startActivity(whatsappIntent)
     }
 
 
@@ -392,16 +352,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun foregroundServiceRunning(): Boolean {
-        val activityManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        for (service in activityManager.getRunningServices(Int.MAX_VALUE)) {
-            if (MyForegroundService::class.java.name == service.service.className) {
-                return true
-            }
-        }
-        return false
-    }
-
     private fun initView() {
 
         if (ElectionDataHolder.hourlyMessageUpdateTime == null) {
@@ -425,8 +375,8 @@ class MainActivity : AppCompatActivity() {
         phoneNumberEditText = findViewById(R.id.phoneNumberEditText)
         openWhatsAppButton = findViewById(R.id.openWhatsAppButton)
         swOnOff = findViewById(R.id.swOnOff)
-        swOnOff.visibility = View.GONE
         swWhatsAppOnOff = findViewById(R.id.swWhatsAppOnOff)
+        swOnOff.visibility = View.GONE
         swSMSOnOff = findViewById(R.id.swSMSOnOff)
         textView2 = findViewById(R.id.textView2)
         textView2.visibility = View.GONE
@@ -458,25 +408,6 @@ class MainActivity : AppCompatActivity() {
                     false
                 )
         }
-        /*swOnOff.setOnCheckedChangeListener { buttonView, isChecked ->
-            if (isChecked) {
-                swWhatsAppOnOff.isChecked = true
-                swSMSOnOff.isChecked = true
-                AppPreferences.saveBooleanToSharedPreferences(
-                    this@MainActivity,
-                    AppPreferences.PRACHAR_ON_OFF,
-                    true
-                )
-            } else {
-                swWhatsAppOnOff.isChecked = false
-                swSMSOnOff.isChecked = false
-                AppPreferences.saveBooleanToSharedPreferences(
-                    this@MainActivity,
-                    AppPreferences.PRACHAR_ON_OFF,
-                    false
-                )
-            }
-        }*/
         openWhatsAppButton?.setOnClickListener(View.OnClickListener {
             resetAllValues(this)
             check()
@@ -520,18 +451,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!Settings.canDrawOverlays(this)) {
-            val REQUEST_CODE = 101
-            val myIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-            myIntent.data = Uri.parse("package:$packageName")
-            this.startActivity(myIntent)
-        }
         // Removed automatic accessibility settings check to prevent popups
         // Users can manually enable accessibility services if needed
-        val serviceManager = AccessibilityServiceManager(this)
-        if (!serviceManager.hasAccessibilityServicePermission(MyAccessibilityService::class.java)) {
-            serviceManager.requestUserForAccessibilityService(this)
-        }
     }
 
     private fun resetAllValues(context: Context) {
@@ -571,11 +492,6 @@ class MainActivity : AppCompatActivity() {
             this,
             AppPreferences.SMS_ON_OFF,
             swSMSOnOff.isChecked
-        )
-        AppPreferences.saveBooleanToSharedPreferences(
-            this,
-            AppPreferences.WHATSAPP_ON_OFF,
-            swWhatsAppOnOff.isChecked
         )
 
         AppPreferences.saveIntToSharedPreferences(
@@ -646,37 +562,8 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERMISSION_REQUEST_CODE) {
-            var allPermissionsGranted = true
-            for (grantResult in grantResults) {
-                if (grantResult != PackageManager.PERMISSION_GRANTED) {
-                    allPermissionsGranted = false
-                    break
-                }
-            }
-            if (allPermissionsGranted) {
-                // All permissions are granted, proceed with your logic
-            } else {
-                // Permissions are not granted, show an alert dialog
-                showPermissionAlertDialog()
-            }
+            // Don't show Permission Required alert dialog -- fail gracefully
         }
-    }
-
-    private fun showPermissionAlertDialog() {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Permission Required")
-        builder.setMessage("Please allow all the required permissions to use this app.")
-        builder.setPositiveButton("OK") { dialog: DialogInterface?, which: Int ->
-            // Request permissions again
-            requestPermissions()
-        }
-        builder.setNegativeButton("Cancel") { dialog: DialogInterface?, which: Int ->
-            // Handle the case when the user cancels the permission request
-            // You can choose to finish the activity or take appropriate action
-            finish()
-        }
-        builder.setCancelable(false)
-        builder.show()
     }
 
     override fun onNewIntent(intent: Intent) {

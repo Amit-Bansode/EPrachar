@@ -2,18 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
-    <uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" />
-    <uses-permission android:name="android.permission.SEND_SMS" />
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-feature
         android:name="android.hardware.telephony"
@@ -37,11 +30,9 @@
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <receiver
             android:name=".EndCallReceiver"
             android:exported="true">
@@ -50,50 +41,12 @@
                 <action android:name="android.intent.action.NEW_OUTGOING_CALL" />
             </intent-filter>
         </receiver>
-
         <service android:name=".MyBackgroundService" />
-        <service
-            android:name=".MyAccessibilityService"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/config_accessibility_service" />
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </service>
-
-        <service 
-            android:name=".MyForegroundService"
-            android:foregroundServiceType="dataSync"
-            android:exported="false">
-        </service>
-        <receiver android:name="MyBroadcastReceiver">
-
-        </receiver>
-        <service
-            android:name=".WhatsappAccessibilityService"
-            android:exported="true"
-            android:label="Accessibility Service"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/whatsapp_service" />
-
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-        </service>
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.chordz.eprachar.provider"
             android:exported="false"
             android:grantUriPermissions="true">
-            <!-- ressource file to create -->
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_path">
