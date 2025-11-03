@@ -69,6 +69,12 @@ class MainActivity : AppCompatActivity() {
 
         initView()
         updateUI()
+        // Load msgDetails from preferences if available
+        val savedMsgDetails = AppPreferences.getMsgDetails(this)
+        if (savedMsgDetails != null) {
+            ElectionDataHolder.msgDetails = savedMsgDetails
+            msgDetails = savedMsgDetails
+        }
         fetchData()
         val phoneNumber = intent.getStringExtra("PHONE_NUMBER")
         if (phoneNumber != null) {
@@ -113,10 +119,11 @@ class MainActivity : AppCompatActivity() {
                     .toString()
             )
         }
-        if (AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.SMS_ON_OFF)) {
-            swSMSOnOff.isChecked =
-                AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.SMS_ON_OFF)
-        }
+        // Restore SMS switch state (both true and false)
+        swSMSOnOff.isChecked = AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.SMS_ON_OFF)
+        
+        // Restore WhatsApp/AI switch state (both true and false)
+        swWhatsAppOnOff.isChecked = AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.WHATSAPP_ON_OFF)
     }
 
     private fun shareViaWhatsApp(image: Bitmap, text: String, phoneNumber: String) {
@@ -345,6 +352,8 @@ class MainActivity : AppCompatActivity() {
             if (electionMessageResponse.code == 200 && !electionMessageResponse.data!!.isEmpty()) {
                 detailsList = electionMessageResponse.data as ArrayList<DataItem?>?
                 msgDetails = electionMessageResponse
+                // Save msgDetails to preferences
+                AppPreferences.saveMsgDetails(this, electionMessageResponse)
                 Toast.makeText(this, "Sync Success", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Sync Failed", Toast.LENGTH_SHORT).show()
@@ -451,8 +460,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Removed automatic accessibility settings check to prevent popups
-        // Users can manually enable accessibility services if needed
+        // Restore switch states when app resumes
+        updateUI()
     }
 
     private fun resetAllValues(context: Context) {

@@ -2,6 +2,9 @@ package com.chordz.eprachar.preferences
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.chordz.eprachar.data.response.ElectionMessageResponse
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 
 object AppPreferences {
 
@@ -23,6 +26,7 @@ object AppPreferences {
     const val SMS_ON_OFF = "SMS_ON_OFF"
     const val WHATSAPP_ON_OFF = "WHATSAPP_ON_OFF"
     const val ADMIN_NUMBER = "ADMIN_NUMBER"
+    const val MSG_DETAILS = "MSG_DETAILS"
     private var sharedPreferences: SharedPreferences? = null
 
     private const val SharedPreferencesName = "DSBOX_PREFERENCES"
@@ -114,5 +118,33 @@ object AppPreferences {
         edit.putBoolean(key, value)
         edit.apply()
         edit.commit()
+    }
+
+    fun saveMsgDetails(context: Context, msgDetails: ElectionMessageResponse?) {
+        if (msgDetails == null) {
+            saveStringToSharedPreferences(context, MSG_DETAILS, "")
+            return
+        }
+        val gson = GsonBuilder().create()
+        val jsonString = gson.toJson(msgDetails)
+        saveStringToSharedPreferences(context, MSG_DETAILS, jsonString)
+    }
+
+    fun getMsgDetails(context: Context): ElectionMessageResponse? {
+        if (sharedPreferences == null) {
+            sharedPreferences =
+                context.getSharedPreferences(SharedPreferencesName, Context.MODE_PRIVATE)
+        }
+        val jsonString = sharedPreferences?.getString(MSG_DETAILS, "") ?: ""
+        if (jsonString.isEmpty()) {
+            return null
+        }
+        try {
+            val gson = GsonBuilder().create()
+            return gson.fromJson(jsonString, ElectionMessageResponse::class.java)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
     }
 }
