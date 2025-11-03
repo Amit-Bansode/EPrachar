@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - EPrachar</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        ul {
+            margin: 10px 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .last-updated {
+            color: #7f8c8d;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+        .contact {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy for EPrachar</h1>
+        <p class="last-updated"><strong>Last Updated:</strong> October 29, 2024</p>
+
+        <h2>1. Introduction</h2>
+        <p>EPrachar ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and protect your information when you use our mobile application.</p>
+
+        <h2>2. Information We Collect</h2>
+        
+        <h3>2.1 Phone State Information</h3>
+        <ul>
+            <li><strong>READ_PHONE_STATE</strong>: We access phone state information to detect when phone calls end</li>
+            <li><strong>READ_CALL_LOG</strong>: We access call log information to monitor incoming and outgoing calls</li>
+        </ul>
+
+        <h3>2.2 SMS Permissions</h3>
+        <ul>
+            <li><strong>SEND_SMS</strong>: We use this permission to send SMS messages to contacts when a call ends (only if enabled by the user)</li>
+        </ul>
+
+        <h3>2.3 Data Collected</h3>
+        <ul>
+            <li>Phone numbers of incoming and outgoing calls</li>
+            <li>Call timestamps</li>
+            <li>Admin code (user ID) configured in the app</li>
+            <li>Message content fetched from our API server</li>
+        </ul>
+
+        <h2>3. How We Use Your Information</h2>
+        <p>We use the collected information solely for the following purposes:</p>
+        <ul>
+            <li><strong>Call Detection</strong>: To detect when phone calls end</li>
+            <li><strong>SMS Sending</strong>: To automatically send SMS messages to callers (only if enabled by the user)</li>
+            <li><strong>AI WhatsApp Integration</strong>: To trigger webhook notifications to our AI service for WhatsApp messaging (only if enabled by the user)</li>
+        </ul>
+
+        <h2>4. Data Storage</h2>
+        <ul>
+            <li>All data is stored locally on your device using Android SharedPreferences</li>
+            <li>No call data, phone numbers, or personal information is transmitted to our servers except when you enable the "AI WhatsApp message" feature</li>
+            <li>When the AI WhatsApp feature is enabled, we send call information (phone number, timestamp, message) to our webhook service to trigger AI-driven WhatsApp messages</li>
+        </ul>
+
+        <h2>5. Data Sharing</h2>
+        <p>We do <strong>NOT</strong> sell, trade, or share your personal information with third parties except:</p>
+        <ul>
+            <li>When you explicitly enable the AI WhatsApp feature, call information is sent to our webhook endpoint for processing</li>
+            <li>The webhook service processes this data as per our AI service provider's privacy policy</li>
+        </ul>
+
+        <h2>6. Your Rights</h2>
+        <p>You have the right to:</p>
+        <ul>
+            <li>Disable SMS sending at any time through app settings</li>
+            <li>Disable AI WhatsApp messaging at any time through app settings</li>
+            <li>Uninstall the app to stop all data collection</li>
+        </ul>
+
+        <h2>7. Security</h2>
+        <p>We implement appropriate technical measures to protect your information, but no method of transmission over the internet is 100% secure.</p>
+
+        <h2>8. Contact Us</h2>
+        <div class="contact">
+            <p>If you have questions about this Privacy Policy, please contact us at:</p>
+            <ul>
+                <li><strong>Email:</strong> [Your Email Address]</li>
+                <li><strong>Website:</strong> [Your Website URL]</li>
+            </ul>
+        </div>
+
+        <h2>9. Changes to This Privacy Policy</h2>
+        <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.</p>
+    </div>
+</body>
+</html>
+
