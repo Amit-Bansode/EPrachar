@@ -456,6 +456,9 @@ class MainActivity : AppCompatActivity() {
         }
         val intent = Intent(this, MyBackgroundService::class.java)
         startService(intent)
+        
+        // Start WhatsApp foreground service to keep it running forever
+        WhatsAppForegroundService.startService(this)
     }
 
     override fun onResume() {

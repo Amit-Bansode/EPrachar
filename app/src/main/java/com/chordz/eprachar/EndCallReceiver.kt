@@ -3,20 +3,22 @@ package com.chordz.eprachar
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.telephony.SmsManager
 import android.telephony.TelephonyManager
 import android.util.Log
-import android.widget.Toast
 import com.chordz.eprachar.preferences.AppPreferences
 import com.chordz.eprachar.preferences.AppPreferences.getBooleanValueFromSharedPreferences
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import org.json.JSONObject
-import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.*
 
 class EndCallReceiver : BroadcastReceiver() {
+    
+    companion object {
+        private const val PREFS_NAME = "CallStatePrefs"
+        private const val KEY_LAST_STATE = "last_phone_state"
+        private const val KEY_LAST_NUMBER = "last_call_number"
+        private const val KEY_IS_OUTGOING = "is_outgoing"
+    }
+    
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
 
@@ -27,20 +29,62 @@ class EndCallReceiver : BroadcastReceiver() {
                 
                 Log.d("EndCallReceiver", "Phone state: $phoneState, Number: $incomingNumber")
                 
-                // Only trigger on RINGING state - this covers incoming calls and missed calls
-                if ((phoneState == TelephonyManager.EXTRA_STATE_RINGING||phoneState == TelephonyManager.EXTRA_STATE_OFFHOOK ) && !incomingNumber.isNullOrEmpty()) {
-                    Log.d("EndCallReceiver", "Call ringing: $incomingNumber")
-                    handleCallEnded(context, incomingNumber, "missed")
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val lastState = prefs.getString(KEY_LAST_STATE, null)
+                val lastNumber = prefs.getString(KEY_LAST_NUMBER, null)
+                val isOutgoing = prefs.getBoolean(KEY_IS_OUTGOING, false)
+                
+                // Save current state
+                if (phoneState != null) {
+                    prefs.edit().putString(KEY_LAST_STATE, phoneState).apply()
+                }
+                if (incomingNumber != null) {
+                    prefs.edit().putString(KEY_LAST_NUMBER, incomingNumber).apply()
+                }
+                
+                // Detect when call ends: IDLE state after RINGING or OFFHOOK
+                if (phoneState == TelephonyManager.EXTRA_STATE_IDLE && lastState != null) {
+                    // Call has ended
+                    val callStatus = when {
+                        isOutgoing -> "outgoing"
+                        lastState == TelephonyManager.EXTRA_STATE_RINGING -> "missed" // Was ringing but never went offhook
+                        lastState == TelephonyManager.EXTRA_STATE_OFFHOOK -> "incoming" // Was answered
+                        else -> "ended"
+                    }
+                    
+                    // Use last number if available
+                    val phoneNumber = lastNumber ?: incomingNumber
+                    if (!phoneNumber.isNullOrEmpty()) {
+                        Log.d("EndCallReceiver", "Call ended: $phoneNumber, Status: $callStatus")
+                        handleCallEnded(context, phoneNumber, callStatus)
+                        
+                        // Clear stored state
+                        prefs.edit().remove(KEY_LAST_STATE)
+                            .remove(KEY_LAST_NUMBER)
+                            .remove(KEY_IS_OUTGOING)
+                            .apply()
+                    }
+                } else if (phoneState == TelephonyManager.EXTRA_STATE_RINGING && !incomingNumber.isNullOrEmpty()) {
+                    // Incoming call started ringing
+                    prefs.edit().putBoolean(KEY_IS_OUTGOING, false).apply()
+                    Log.d("EndCallReceiver", "Incoming call ringing: $incomingNumber")
+                } else if (phoneState == TelephonyManager.EXTRA_STATE_OFFHOOK && !incomingNumber.isNullOrEmpty()) {
+                    // Call was answered (went offhook)
+                    Log.d("EndCallReceiver", "Call answered (offhook): $incomingNumber")
                 }
             }
             
             Intent.ACTION_NEW_OUTGOING_CALL -> {
                 val phoneNumber = intent.getStringExtra(Intent.EXTRA_PHONE_NUMBER)
                 if (!phoneNumber.isNullOrEmpty()) {
-                    Log.d("EndCallReceiver", "Outgoing call: $phoneNumber")
-                    // For outgoing calls, also trigger on ringing (if supported) or just trigger immediately
-                    // Since outgoing calls don't have RINGING state, we trigger immediately
-                    handleCallEnded(context, phoneNumber, "outgoing")
+                    Log.d("EndCallReceiver", "Outgoing call initiated: $phoneNumber")
+                    // Store outgoing call info
+                    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    prefs.edit()
+                        .putString(KEY_LAST_NUMBER, phoneNumber)
+                        .putBoolean(KEY_IS_OUTGOING, true)
+                        .apply()
+                    // Note: We'll handle the actual call end when IDLE state is detected
                 }
             }
         }
@@ -54,10 +98,9 @@ class EndCallReceiver : BroadcastReceiver() {
             sendSMS(context, phoneNumber)
         }
         
-        // Send webhook if AI WhatsApp toggle is enabled
-        if (AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.WHATSAPP_ON_OFF)) {
-            sendWebhookForAI(context, phoneNumber, callStatus)
-        }
+        // Start foreground service to handle WhatsApp/webhook (will check toggle inside service)
+        WhatsAppForegroundService.startService(context)
+        WhatsAppForegroundService.sendWebhook(context, phoneNumber, callStatus)
     }
 
     private fun sendSMS(context: Context, phoneNumber: String) {
@@ -79,54 +122,4 @@ class EndCallReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun sendWebhookForAI(context: Context, phoneNumber: String, callStatus: String) {
-        // Fetch msgDetails from preferences
-        val msgDetails = AppPreferences.getMsgDetails(context)
-        if (msgDetails == null) {
-            Log.w("EndCallReceiver", "No msgDetails available for webhook")
-            return
-        }
-        
-        // Fetch admin code (user_id), message, media_url, timestamp
-        val userId = AppPreferences.getLongValueFromSharedPreferences(AppPreferences.ADMIN_NUMBER).toString()
-        val message: String = msgDetails.data?.getOrNull(0)?.aMessage ?: ""
-        val mediaUrl: String = msgDetails.data?.getOrNull(0)?.aImage ?: ""
-        val user = msgDetails?.data?.getOrNull(0)?.client?:"chordz"
-
-        val isoDate: String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { 
-            timeZone = TimeZone.getTimeZone("UTC") 
-        }.format(Date())
-        
-        val json = JSONObject().apply {
-            put("user_id", userId)
-            put("caller_number", phoneNumber)
-            put("call_status", callStatus) // Use actual call status: "incoming", "missed", "outgoing", or "ended"
-            put("timestamp", isoDate)
-            put("message", message)
-            put("media_url", mediaUrl)
-            put("client", user.lowercase())
-        }
-        
-        val url = "https://nonrecurently-diverse-deedee.ngrok-free.dev/webhook/aimessage"
-        val client = OkHttpClient()
-        val body = RequestBody.create("application/json; charset=utf-8".toMediaType(), json.toString())
-        val req = Request.Builder()
-            .url(url)
-            .header("Content-Type", "application/json")
-            .post(body)
-            .build()
-            
-        client.newCall(req).enqueue(object: Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                Log.e("EndCallReceiver", "Webhook failed for $phoneNumber", e)
-                Toast.makeText(context, "AI message not sent", Toast.LENGTH_SHORT).show()
-            }
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    Toast.makeText(context, "AI message sent", Toast.LENGTH_SHORT).show()
-                    Log.d("EndCallReceiver", "Webhook response: ${it.code} for $phoneNumber")
-                }
-            }
-        })
-    }
 }
