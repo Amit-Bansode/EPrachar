@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:id="@+id/root"
+    android:layout_margin="16dp"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
@@ -154,7 +155,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:padding="8dp"
-                android:text="AI WhatsApp message"
+                android:text="AI WhatsApp"
                 android:textSize="16sp"
                 android:background="@color/cardview_shadow_start_color"
                 app:layout_constraintBottom_toBottomOf="parent"

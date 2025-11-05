@@ -54,5 +54,10 @@ data class DataItem(
 	val aName: String? = null,
 
 	@field:SerializedName("a_image")
-	val aImage: String? = null
+	val aImage: String? = null,
+
+	@field:SerializedName("org_name")
+	val client: String? = null
+
+
 ) : Parcelable

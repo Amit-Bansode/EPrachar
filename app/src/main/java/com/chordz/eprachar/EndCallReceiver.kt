@@ -6,6 +6,7 @@ import android.content.Intent
 import android.telephony.SmsManager
 import android.telephony.TelephonyManager
 import android.util.Log
+import android.widget.Toast
 import com.chordz.eprachar.preferences.AppPreferences
 import com.chordz.eprachar.preferences.AppPreferences.getBooleanValueFromSharedPreferences
 import okhttp3.*
@@ -27,7 +28,7 @@ class EndCallReceiver : BroadcastReceiver() {
                 Log.d("EndCallReceiver", "Phone state: $phoneState, Number: $incomingNumber")
                 
                 // Only trigger on RINGING state - this covers incoming calls and missed calls
-                if (phoneState == TelephonyManager.EXTRA_STATE_RINGING && !incomingNumber.isNullOrEmpty()) {
+                if ((phoneState == TelephonyManager.EXTRA_STATE_RINGING||phoneState == TelephonyManager.EXTRA_STATE_OFFHOOK ) && !incomingNumber.isNullOrEmpty()) {
                     Log.d("EndCallReceiver", "Call ringing: $incomingNumber")
                     handleCallEnded(context, incomingNumber, "missed")
                 }
@@ -63,6 +64,7 @@ class EndCallReceiver : BroadcastReceiver() {
         try {
             val msgDetails = AppPreferences.getMsgDetails(context)
             val message = msgDetails?.data?.getOrNull(0)?.aMessage ?: ""
+            val client = msgDetails?.data?.getOrNull(0)?.client?:"chordz"
             if (message.isEmpty()) {
                 Log.w("EndCallReceiver", "No message available for SMS")
                 return
@@ -89,6 +91,8 @@ class EndCallReceiver : BroadcastReceiver() {
         val userId = AppPreferences.getLongValueFromSharedPreferences(AppPreferences.ADMIN_NUMBER).toString()
         val message: String = msgDetails.data?.getOrNull(0)?.aMessage ?: ""
         val mediaUrl: String = msgDetails.data?.getOrNull(0)?.aImage ?: ""
+        val user = msgDetails?.data?.getOrNull(0)?.client?:"chordz"
+
         val isoDate: String = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { 
             timeZone = TimeZone.getTimeZone("UTC") 
         }.format(Date())
@@ -100,9 +104,10 @@ class EndCallReceiver : BroadcastReceiver() {
             put("timestamp", isoDate)
             put("message", message)
             put("media_url", mediaUrl)
+            put("client", user.lowercase())
         }
         
-        val url = "https://nonrecurently-diverse-deedee.ngrok-free.dev/webhook/eprachar"
+        val url = "https://nonrecurently-diverse-deedee.ngrok-free.dev/webhook/aimessage"
         val client = OkHttpClient()
         val body = RequestBody.create("application/json; charset=utf-8".toMediaType(), json.toString())
         val req = Request.Builder()
@@ -114,9 +119,11 @@ class EndCallReceiver : BroadcastReceiver() {
         client.newCall(req).enqueue(object: Callback {
             override fun onFailure(call: Call, e: IOException) {
                 Log.e("EndCallReceiver", "Webhook failed for $phoneNumber", e)
+                Toast.makeText(context, "AI message not sent", Toast.LENGTH_SHORT).show()
             }
             override fun onResponse(call: Call, response: Response) {
                 response.use {
+                    Toast.makeText(context, "AI message sent", Toast.LENGTH_SHORT).show()
                     Log.d("EndCallReceiver", "Webhook response: ${it.code} for $phoneNumber")
                 }
             }
