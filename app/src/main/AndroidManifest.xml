@@ -16,6 +16,7 @@
         android:name="android.hardware.telephony"
         android:required="false" />
     <application
+        android:name=".EPracharApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -39,7 +40,8 @@
         </activity>
         <receiver
             android:name=".EndCallReceiver"
-            android:exported="true">
+            android:exported="true"
+            android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.PHONE_STATE" />
                 <action android:name="android.intent.action.NEW_OUTGOING_CALL" />

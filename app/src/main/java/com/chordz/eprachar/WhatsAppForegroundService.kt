@@ -49,24 +49,32 @@ class WhatsAppForegroundService : Service() {
     
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
-        startForeground(NOTIFICATION_ID, createNotification())
-        Log.d("WhatsAppService", "Service created and started in foreground")
+        try {
+            createNotificationChannel()
+            startForeground(NOTIFICATION_ID, createNotification())
+            Log.d("WhatsAppService", "Service created and started in foreground")
+        } catch (e: Exception) {
+            Log.e("WhatsAppService", "Error starting service", e)
+        }
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_SEND_WEBHOOK -> {
-                val phoneNumber = intent.getStringExtra(EXTRA_PHONE_NUMBER) ?: return START_STICKY
-                val callStatus = intent.getStringExtra(EXTRA_CALL_STATUS) ?: "missed"
-                
-                Log.d("WhatsAppService", "Received webhook task: $phoneNumber, status: $callStatus")
-                processWebhook(phoneNumber, callStatus)
+        try {
+            when (intent?.action) {
+                ACTION_SEND_WEBHOOK -> {
+                    val phoneNumber = intent.getStringExtra(EXTRA_PHONE_NUMBER) ?: return START_STICKY
+                    val callStatus = intent.getStringExtra(EXTRA_CALL_STATUS) ?: "missed"
+                    
+                    Log.d("WhatsAppService", "Received webhook task: $phoneNumber, status: $callStatus")
+                    processWebhook(phoneNumber, callStatus)
+                }
+                else -> {
+                    // Service started without action - just keep it running
+                    Log.d("WhatsAppService", "Service started to keep running")
+                }
             }
-            else -> {
-                // Service started without action - just keep it running
-                Log.d("WhatsAppService", "Service started to keep running")
-            }
+        } catch (e: Exception) {
+            Log.e("WhatsAppService", "Error in onStartCommand", e)
         }
         
         return START_STICKY // Service will restart if killed

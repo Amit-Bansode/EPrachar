@@ -91,16 +91,24 @@ class EndCallReceiver : BroadcastReceiver() {
     }
     
     private fun handleCallEnded(context: Context, phoneNumber: String, callStatus: String = "missed") {
-        Log.d("EndCallReceiver", "Handling call: $phoneNumber, Status: $callStatus")
-        
-        // Send SMS if enabled
-        if (AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.SMS_ON_OFF)) {
-            sendSMS(context, phoneNumber)
+        try {
+            Log.d("EndCallReceiver", "Handling call: $phoneNumber, Status: $callStatus")
+            
+            // Send SMS if enabled
+            if (AppPreferences.getBooleanValueFromSharedPreferences(AppPreferences.SMS_ON_OFF)) {
+                sendSMS(context, phoneNumber)
+            }
+            
+            // Start foreground service to handle WhatsApp/webhook (will check toggle inside service)
+            try {
+                WhatsAppForegroundService.startService(context)
+                WhatsAppForegroundService.sendWebhook(context, phoneNumber, callStatus)
+            } catch (e: Exception) {
+                Log.e("EndCallReceiver", "Failed to start service or send webhook", e)
+            }
+        } catch (e: Exception) {
+            Log.e("EndCallReceiver", "Error in handleCallEnded", e)
         }
-        
-        // Start foreground service to handle WhatsApp/webhook (will check toggle inside service)
-        WhatsAppForegroundService.startService(context)
-        WhatsAppForegroundService.sendWebhook(context, phoneNumber, callStatus)
     }
 
     private fun sendSMS(context: Context, phoneNumber: String) {
