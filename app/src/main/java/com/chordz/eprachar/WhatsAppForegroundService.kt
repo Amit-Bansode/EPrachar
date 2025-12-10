@@ -163,9 +163,10 @@ class WhatsAppForegroundService : Service() {
                     put("contacts", phoneNumber)
                     put("a_message", message)
                     put("a_image", mediaUrl)
-                    put("data",msgDetails)
+                    put("whatsapp_name",msgDetails.data?.getOrNull(0)?.whatsapp_name)
                     put("client_name", user.lowercase())
-                     url = "https://preobtrusive-parablastic-bryn.ngrok-free.dev/webhook/echordz"
+//                     url = "https://preobtrusive-parablastic-bryn.ngrok-free.dev/webhook/echordz"
+                    url = "http://72.61.238.154:5678/webhook/echordz"
                 }
             }
         }
