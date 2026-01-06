@@ -166,12 +166,14 @@ class WhatsAppForegroundService : Service() {
                     put("whatsapp_name",msgDetails.data?.getOrNull(0)?.whatsapp_name)
                     put("client_name", user.lowercase())
 //                     url = "https://preobtrusive-parablastic-bryn.ngrok-free.dev/webhook/echordz"
-                    url = "http://72.61.238.154:5678/webhook/echordz"
+//                    url = "http://72.61.238.154:5678/webhook/echordz"
+                    url = "https://n8n.chordzai.in/webhook/callwhatsapp"
+
                 }
             }
         }
 
-
+        Log.d("body", "body: "+ json)
         val body =
             RequestBody.create("application/json; charset=utf-8".toMediaType(), json.toString())
         val req = Request.Builder()
